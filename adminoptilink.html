@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+    <title>OptiLink - Staff Admin</title>
+    <style>
+        :root {
+            --blue: #3E7BFA;
+            --violet: #8B3FF0;
+            --ink: #1B1730;
+            --ink-soft: #4B4768;
+            --muted: #8985A3;
+            --bg: #FAFAFD;
+            --surface: #FFFFFF;
+            --surface-alt: #F2F0FB;
+            --border: #E7E4F5;
+            --success: #1FAA59;
+            --success-bg: #E9F9EF;
+            --warning: #DB9A0B;
+            --warning-bg: #FDF3DD;
+            --danger: #E5484D;
+            --danger-bg: #FDEBEC;
+            --gradient: linear-gradient(120deg, var(--blue), var(--violet));
+            --shadow-sm: 0 1px 2px rgba(27, 23, 48, 0.06);
+            --shadow-md: 0 8px 24px rgba(60, 40, 130, 0.10);
+        }
+
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 15px;
+            color: var(--ink);
+            background-color: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden; 
+        }
+        
+        button, input { font-family: inherit; }
+        h1, h2, h3 { margin: 0; letter-spacing: -0.01em; }
+        
+        #app {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Sidebar (Desktop only) */
+        .sidebar {
+            width: 250px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+        .sidebar-brand {
+            padding: 24px 20px;
+            font-size: 21px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar-brand svg {
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .sidebar-brand .accent {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .sidebar-nav {
+            padding: 20px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+        .sidebar-btn {
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            text-align: left;
+            font-weight: 600;
+            color: var(--muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.15s ease;
+        }
+        .sidebar-btn:hover { background: var(--surface-alt); }
+        .sidebar-btn.active {
+            background: var(--surface-alt);
+            color: var(--blue);
+        }
+        
+        /* Main View */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg);
+            min-width: 0; 
+        }
+        
+        .topbar {
+            padding: 16px 24px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+        }
+        .topbar-title { font-weight: 700; font-size: 18px; }
+        .user-avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        #main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Bottom Nav (Mobile only) */
+        .bottom-nav {
+            display: none;
+            background-color: rgba(255,255,255,0.96);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            z-index: 30;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-btn {
+            flex: 1;
+            padding: 10px 4px 8px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .nav-btn.active { color: var(--blue); }
+        .nav-icon {
+            width: 22px; height: 22px;
+            display: block;
+            margin: 0 auto 3px;
+            stroke: currentColor;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .bottom-nav { display: flex; }
+            #main { padding: 16px; padding-bottom: 90px; }
+            .topbar { padding: 12px 16px; }
+        }
+
+        /* Generic UI Components */
+        .card {
+            background-color: var(--surface);
+            border-radius: 14px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 14px;
+            box-shadow: var(--shadow-sm);
+        }
+        .badge {
+            font-size: 12px; font-weight: 700; padding: 4px 9px;
+            border-radius: 999px; white-space: nowrap;
+        }
+        .badge.in { background: var(--success-bg); color: var(--success); }
+        .badge.low { background: var(--warning-bg); color: var(--warning); }
+        .badge.out { background: var(--danger-bg); color: var(--danger); }
+        .badge.pending { background: #e0f2fe; color: #0284c7; }
+        
+        .btn {
+            border: none; border-radius: 10px;
+            font-weight: 600; font-size: 13.5px;
+            padding: 10px 14px; cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--gradient); color: #fff; }
+        .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--ink); }
+        .btn-danger { background: var(--danger-bg); color: var(--danger); }
+        
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+        
+        .toast {
+            position: fixed; left: 50%; bottom: 96px;
+            transform: translateX(-50%) translateY(20px);
+            background-color: var(--ink); color: #fff;
+            padding: 11px 18px; border-radius: 999px;
+            font-size: 13.5px; font-weight: 600;
+            box-shadow: var(--shadow-md); opacity: 0; pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease; z-index: 100;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        @media (min-width: 768px) { .toast { bottom: 40px; } }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(27, 23, 48, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 20px;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: var(--surface);
+            border-radius: 16px;
+            max-width: 440px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-md);
+            padding: 20px;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 14px;
+        }
+        .modal-close {
+            border: none; background: var(--surface-alt);
+            width: 30px; height: 30px; border-radius: 50%;
+            cursor: pointer; font-size: 15px; color: var(--muted);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-row { margin-bottom: 12px; font-size: 14px; }
+        .modal-row .label { color: var(--muted); font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+        .modal-field {
+            width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+            border-radius: 8px; font-size: 14px; margin-top: 4px;
+        }
+
+        /* Chart */
+        .chart-wrap {
+            display: flex; align-items: flex-end; gap: 10px;
+            height: 160px; padding: 10px 4px 0;
+        }
+        .chart-bar-col {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;
+        }
+        .chart-bar {
+            width: 100%;
+            max-width: 34px;
+            border-radius: 6px 6px 2px 2px;
+            background: var(--gradient);
+            transition: height 0.4s ease;
+        }
+        .chart-bar-label {
+            font-size: 11px; color: var(--muted); margin-top: 6px; font-weight: 600;
+        }
+        .toggle-switch {
+            position: relative; width: 42px; height: 24px;
+            background: var(--border); border-radius: 999px; cursor: pointer;
+            transition: background 0.2s ease; flex-shrink: 0; border: none;
+        }
+        .toggle-switch.on { background: var(--gradient); }
+        .toggle-switch .knob {
+            position: absolute; top: 3px; left: 3px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #fff; transition: transform 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle-switch.on .knob { transform: translateX(18px); }
+        .settings-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 0; border-bottom: 1px solid var(--border);
+        }
+        .settings-row:last-child { border-bottom: none; }
+        .settings-row-text p:first-child { font-weight: 600; font-size: 14px; }
+        .settings-row-text p:last-child { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="logoGradAdmin" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#3E7BFA"/>
+                            <stop offset="100%" stop-color="#8B3FF0"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M20 45 C20 38 25 33 32 33 L62 33 C69 33 74 38 74 45 L74 68 C74 82 63 93 49 93 C35 93 24 82 24 68 Z" fill="none" stroke="url(#logoGradAdmin)" stroke-width="7" stroke-linejoin="round"/>
+                    <path d="M74 45 L100 45" fill="none" stroke="url(#logoGradAdmin)" stroke-width="7"/>
+                    <path d="M100 45 C100 38 105 33 112 33 L142 33 C149 33 154 38 154 45 L154 68 C154 82 143 93 129 93 C115 93 104 82 104 68 Z" fill="none" stroke="url(#logoGradAdmin)" stroke-width="7" stroke-linejoin="round"/>
+                    <circle cx="129" cy="63" r="18" fill="url(#logoGradAdmin)"/>
+                    <circle cx="129" cy="63" r="10" fill="#1B1730"/>
+                    <circle cx="124" cy="58" r="3.5" fill="#fff"/>
+                </svg>
+                <div>Opti<span class="accent">Admin</span></div>
+            </div>
+            <div class="sidebar-nav">
+                <button class="sidebar-btn active" data-page="home" onclick="showPage('home')">🏠 Dashboard</button>
+                <button class="sidebar-btn" data-page="appointments" onclick="showPage('appointments')">📅 Appointments</button>
+                <button class="sidebar-btn" data-page="inventory" onclick="showPage('inventory')">📦 Inventory</button>
+                <button class="sidebar-btn" data-page="records" onclick="showPage('records')">📁 Client Records</button>
+                <div style="flex: 1"></div>
+                <button class="sidebar-btn" data-page="settings" onclick="showPage('settings')">⚙️ Settings</button>
+            </div>
+        </aside>
+
+        <div class="main-wrapper">
+            <header class="topbar">
+                <div class="topbar-title" id="topbarTitle">Dashboard</div>
+                <div class="user-avatar">SA</div>
+            </header>
+
+            <main id="main">
+                </main>
+        </div>
+
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-page="home" onclick="showPage('home')">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>
+                Home
+            </button>
+            <button class="nav-btn" data-page="appointments" onclick="showPage('appointments')">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></svg>
+                Bookings
+            </button>
+            <button class="nav-btn" data-page="inventory" onclick="showPage('inventory')">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+                Stock
+            </button>
+            <button class="nav-btn" data-page="records" onclick="showPage('records')">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>
+                Records
+            </button>
+            <button class="nav-btn" data-page="settings" onclick="showPage('settings')">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+            </button>
+        </nav>
+
+        <div class="toast" id="toast"></div>
+
+        <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
+            <div class="modal-box" id="modalBox"></div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            currentPage: 'home',
+            filter: 'all'
+        };
+
+        const appointments = [
+            { id: '101', name: 'John Doe', date: 'Oct 24, 2024', time: '10:00 AM', type: 'Eye Exam', status: 'Pending', phone: '(555) 012-3344', email: 'john.doe@example.com', notes: 'Follow-up on new prescription strength.' },
+            { id: '102', name: 'Alice Smith', date: 'Oct 24, 2024', time: '11:30 AM', type: 'Lens Fitting', status: 'Pending', phone: '(555) 018-2210', email: 'alice.smith@example.com', notes: 'First-time progressive lens fitting.' },
+            { id: '103', name: 'Robert Johnson', date: 'Oct 25, 2024', time: '02:00 PM', type: 'Consultation', status: 'Pending', phone: '(555) 044-7781', email: 'robert.j@example.com', notes: 'Considering LASIK, wants initial consult.' }
+        ];
+
+        const stock = [
+            { id: 1, name: 'Classic Black Frame', type: 'frame', qty: 25, total: 30 },
+            { id: 2, name: 'Classic Brown Frame', type: 'frame', qty: 15, total: 20 },
+            { id: 3, name: 'Cat Eye Pink Frame', type: 'frame', qty: 0, total: 10 },
+            { id: 4, name: 'Single Vision Lenses', type: 'lens', qty: 60, total: 60 },
+            { id: 5, name: 'Blue Light Blocking', type: 'lens', qty: 5, total: 20 },
+            { id: 6, name: 'Anti-Reflective', type: 'lens', qty: 42, total: 50 },
+        ];
+
+        const records = [
+            { id: 'R1', client: 'John Doe', doc: 'Eye Exam Report.pdf', date: 'Oct 15, 2024', summary: 'Visual acuity 20/20 corrected. Mild astigmatism noted in left eye. New prescription issued.' },
+            { id: 'R2', client: 'Alice Smith', doc: 'Prescription_Update.pdf', date: 'Oct 10, 2024', summary: 'Updated prescription for progressive lenses. Patient reports improved near-vision clarity.' },
+            { id: 'R3', client: 'Maria Garcia', doc: 'Consultation_Notes.pdf', date: 'Oct 02, 2024', summary: 'Initial consultation for contact lenses. Discussed daily disposable options.' }
+        ];
+
+        // Weekly appointment volume for the dashboard chart (Mon-Sun)
+        const weeklyVolume = [
+            { label: 'Mon', value: 5 },
+            { label: 'Tue', value: 8 },
+            { label: 'Wed', value: 4 },
+            { label: 'Thu', value: 9 },
+            { label: 'Fri', value: 7 },
+            { label: 'Sat', value: 3 },
+            { label: 'Sun', value: 1 }
+        ];
+
+        let settingsPrefs = {
+            emailNotifs: true,
+            smsNotifs: false,
+            autoConfirm: true
+        };
+
+        function showToast(msg) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 2400);
+        }
+
+        function openModal(html) {
+            document.getElementById('modalBox').innerHTML = html;
+            document.getElementById('modalOverlay').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('show');
+        }
+
+        function findAppointment(id) {
+            return appointments.find(a => a.id === id);
+        }
+
+        function viewAppointment(id) {
+            const app = findAppointment(id);
+            if (!app) return;
+            openModal(`
+                <div class="modal-header">
+                    <h3 style="font-size: 17px;">Appointment Details</h3>
+                    <button class="modal-close" onclick="closeModal()">✕</button>
+                </div>
+                <div class="modal-row"><div class="label">Client</div>${app.name}</div>
+                <div class="modal-row"><div class="label">Type</div>${app.type}</div>
+                <div class="modal-row"><div class="label">Date &amp; Time</div>${app.date} at ${app.time}</div>
+                <div class="modal-row"><div class="label">Status</div><span class="badge ${app.status === 'Approved' ? 'in' : app.status === 'Cancelled' ? 'out' : 'pending'}">${app.status}</span></div>
+                <div class="modal-row"><div class="label">Phone</div>${app.phone}</div>
+                <div class="modal-row"><div class="label">Email</div>${app.email}</div>
+                <div class="modal-row"><div class="label">Notes</div>${app.notes}</div>
+                <div style="display:flex; gap:10px; margin-top: 14px;">
+                    <button class="btn btn-primary" style="flex:1;" onclick="approveAppointment('${app.id}'); closeModal();">Approve</button>
+                    <button class="btn btn-outline" style="flex:1;" onclick="closeModal()">Close</button>
+                </div>
+            `);
+        }
+
+        function approveAppointment(id) {
+            const app = findAppointment(id);
+            if (!app) return;
+            app.status = 'Approved';
+            showToast(`Appointment for ${app.name} approved`);
+            renderPage();
+        }
+
+        function cancelAppointment(id) {
+            const app = findAppointment(id);
+            if (!app) return;
+            if (!confirm(`Cancel the appointment for ${app.name}?`)) return;
+            app.status = 'Cancelled';
+            showToast(`Appointment for ${app.name} cancelled`);
+            renderPage();
+        }
+
+        function findStock(id) {
+            return stock.find(s => s.id === id);
+        }
+
+        function restockItem(id) {
+            const item = findStock(id);
+            if (!item) return;
+            openModal(`
+                <div class="modal-header">
+                    <h3 style="font-size: 17px;">Restock: ${item.name}</h3>
+                    <button class="modal-close" onclick="closeModal()">✕</button>
+                </div>
+                <div class="modal-row">
+                    <div class="label">Current Quantity</div>${item.qty} / ${item.total}
+                </div>
+                <div class="modal-row">
+                    <div class="label">Quantity to Add</div>
+                    <input type="number" class="modal-field" id="restockAmount" value="10" min="1">
+                </div>
+                <div style="display:flex; gap:10px; margin-top: 14px;">
+                    <button class="btn btn-primary" style="flex:1;" onclick="confirmRestock(${item.id})">Place Order</button>
+                    <button class="btn btn-outline" style="flex:1;" onclick="closeModal()">Cancel</button>
+                </div>
+            `);
+        }
+
+        function confirmRestock(id) {
+            const item = findStock(id);
+            const amountInput = document.getElementById('restockAmount');
+            const amount = parseInt(amountInput.value, 10) || 0;
+            if (amount <= 0) { showToast('Enter a valid quantity'); return; }
+            item.qty = Math.min(item.qty + amount, item.total + amount);
+            item.total = Math.max(item.total, item.qty);
+            closeModal();
+            showToast(`Restocked ${amount} units of ${item.name}`);
+            renderPage();
+        }
+
+        function findRecord(id) {
+            return records.find(r => r.id === id);
+        }
+
+        function viewRecord(id) {
+            const rec = findRecord(id);
+            if (!rec) return;
+            openModal(`
+                <div class="modal-header">
+                    <h3 style="font-size: 17px;">${rec.doc}</h3>
+                    <button class="modal-close" onclick="closeModal()">✕</button>
+                </div>
+                <div class="modal-row"><div class="label">Client</div>${rec.client}</div>
+                <div class="modal-row"><div class="label">Uploaded</div>${rec.date}</div>
+                <div class="modal-row"><div class="label">Summary</div>${rec.summary}</div>
+                <button class="btn btn-outline" style="width:100%; margin-top: 10px;" onclick="closeModal()">Close</button>
+            `);
+        }
+
+        function deleteRecord(id) {
+            const rec = findRecord(id);
+            if (!rec) return;
+            if (!confirm(`Delete "${rec.doc}" for ${rec.client}? This cannot be undone.`)) return;
+            const idx = records.findIndex(r => r.id === id);
+            if (idx > -1) records.splice(idx, 1);
+            showToast('Record deleted');
+            renderPage();
+        }
+
+        function uploadRecord() {
+            openModal(`
+                <div class="modal-header">
+                    <h3 style="font-size: 17px;">Upload New Record</h3>
+                    <button class="modal-close" onclick="closeModal()">✕</button>
+                </div>
+                <div class="modal-row">
+                    <div class="label">Client Name</div>
+                    <input type="text" class="modal-field" id="uploadClient" placeholder="e.g. Jane Cruz">
+                </div>
+                <div class="modal-row">
+                    <div class="label">Document Name</div>
+                    <input type="text" class="modal-field" id="uploadDoc" placeholder="e.g. Eye_Exam_Report.pdf">
+                </div>
+                <div style="display:flex; gap:10px; margin-top: 14px;">
+                    <button class="btn btn-primary" style="flex:1;" onclick="confirmUpload()">Upload</button>
+                    <button class="btn btn-outline" style="flex:1;" onclick="closeModal()">Cancel</button>
+                </div>
+            `);
+        }
+
+        function confirmUpload() {
+            const client = document.getElementById('uploadClient').value.trim();
+            const doc = document.getElementById('uploadDoc').value.trim();
+            if (!client || !doc) { showToast('Please fill in both fields'); return; }
+            const today = new Date();
+            const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+            records.unshift({ id: 'R' + Date.now(), client, doc, date: dateStr, summary: 'Newly uploaded document. No summary yet.' });
+            closeModal();
+            showToast(`Uploaded ${doc} for ${client}`);
+            renderPage();
+        }
+
+        function toggleSetting(key) {
+            settingsPrefs[key] = !settingsPrefs[key];
+            renderPage();
+            showToast('Preference updated');
+        }
+
+        function openSettingsPanel(panel) {
+            const panels = {
+                hours: {
+                    title: 'Manage Operating Hours',
+                    body: `
+                        <div class="modal-row"><div class="label">Weekdays</div>9:00 AM – 6:00 PM</div>
+                        <div class="modal-row"><div class="label">Saturday</div>9:00 AM – 3:00 PM</div>
+                        <div class="modal-row"><div class="label">Sunday</div>Closed</div>
+                    `
+                },
+                staff: {
+                    title: 'Staff Accounts',
+                    body: `
+                        <div class="modal-row"><div class="label">Staff Admin</div>STAFF-001 · System Administrator</div>
+                        <div class="modal-row"><div class="label">Dr. Elena Cruz</div>STAFF-002 · Optometrist</div>
+                        <div class="modal-row"><div class="label">Mark Villar</div>STAFF-003 · Front Desk</div>
+                    `
+                },
+                notifications: {
+                    title: 'Notification Preferences',
+                    body: `
+                        <div class="settings-row">
+                            <div class="settings-row-text">
+                                <p>Email Notifications</p>
+                                <p>Get appointment updates via email</p>
+                            </div>
+                            <button class="toggle-switch ${settingsPrefs.emailNotifs ? 'on' : ''}" onclick="toggleSetting('emailNotifs'); openSettingsPanel('notifications');"><span class="knob"></span></button>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-text">
+                                <p>SMS Notifications</p>
+                                <p>Get text alerts for new bookings</p>
+                            </div>
+                            <button class="toggle-switch ${settingsPrefs.smsNotifs ? 'on' : ''}" onclick="toggleSetting('smsNotifs'); openSettingsPanel('notifications');"><span class="knob"></span></button>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-text">
+                                <p>Auto-confirm Bookings</p>
+                                <p>Automatically approve routine appointments</p>
+                            </div>
+                            <button class="toggle-switch ${settingsPrefs.autoConfirm ? 'on' : ''}" onclick="toggleSetting('autoConfirm'); openSettingsPanel('notifications');"><span class="knob"></span></button>
+                        </div>
+                    `
+                }
+            };
+            const p = panels[panel];
+            openModal(`
+                <div class="modal-header">
+                    <h3 style="font-size: 17px;">${p.title}</h3>
+                    <button class="modal-close" onclick="closeModal()">✕</button>
+                </div>
+                ${p.body}
+                <button class="btn btn-outline" style="width:100%; margin-top: 14px;" onclick="closeModal()">Close</button>
+            `);
+        }
+
+        function showPage(page) {
+            state.currentPage = page;
+            
+            // Sync Navigation UI
+            document.querySelectorAll('.sidebar-btn, .nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll(`[data-page="${page}"]`).forEach(btn => btn.classList.add('active'));
+            
+            // Set Titles
+            const titles = {
+                home: 'Admin Dashboard',
+                appointments: 'Booked Appointments',
+                inventory: 'Clinic Inventory',
+                records: 'Client Records',
+                settings: 'Staff Settings'
+            };
+            document.getElementById('topbarTitle').textContent = titles[page];
+            
+            document.getElementById('main').scrollTop = 0;
+            renderPage();
+        }
+
+        function renderPage() {
+            const main = document.getElementById('main');
+            if (state.currentPage === 'home') main.innerHTML = renderHome();
+            else if (state.currentPage === 'appointments') main.innerHTML = renderAppointments();
+            else if (state.currentPage === 'inventory') main.innerHTML = renderInventory();
+            else if (state.currentPage === 'records') main.innerHTML = renderRecords();
+            else if (state.currentPage === 'settings') main.innerHTML = renderSettings();
+        }
+
+        function renderHome() {
+            return `
+                <div style="margin-bottom: 24px;">
+                    <h2 style="font-size: 22px; font-weight: 700;">Good Morning, Admin 👋</h2>
+                    <p style="color: var(--muted); font-size: 14px; margin-top: 4px;">Here is your clinic overview for today.</p>
+                </div>
+                <div class="grid-3">
+                    <div class="card">
+                        <div style="font-size: 24px; margin-bottom: 10px;">📅</div>
+                        <h3 style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">${appointments.length}</h3>
+                        <p style="color: var(--muted); font-size: 13px;">Upcoming Appointments</p>
+                    </div>
+                    <div class="card">
+                        <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+                        <h3 style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">2</h3>
+                        <p style="color: var(--muted); font-size: 13px;">Low Stock Alerts</p>
+                    </div>
+                    <div class="card">
+                        <div style="font-size: 24px; margin-bottom: 10px;">📁</div>
+                        <h3 style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">${records.length}</h3>
+                        <p style="color: var(--muted); font-size: 13px;">Recent Client Records</p>
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top: 24px;">
+                    <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 4px;">
+                        <h3 style="font-weight: 700; font-size: 16px;">Appointments This Week</h3>
+                        <span class="badge in">${weeklyVolume.reduce((s,d)=>s+d.value,0)} total</span>
+                    </div>
+                    <div class="chart-wrap">
+                        ${weeklyVolume.map(d => {
+                            const max = Math.max(...weeklyVolume.map(x => x.value));
+                            const heightPct = Math.max((d.value / max) * 100, 6);
+                            return `
+                            <div class="chart-bar-col">
+                                <div class="chart-bar" style="height: ${heightPct}%;" title="${d.label}: ${d.value} appointments"></div>
+                                <div class="chart-bar-label">${d.label}</div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <h3 style="font-weight: 700; font-size: 16px; margin: 24px 0 12px; color: var(--ink);">Today's Schedule</h3>
+                ${appointments.slice(0,2).map(app => `
+                    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <p style="font-weight: 700;">${app.name} - <span style="color: var(--blue);">${app.type}</span></p>
+                            <p style="color: var(--muted); font-size: 12.5px; margin-top: 4px;">${app.time}</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="viewAppointment('${app.id}')">View</button>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function renderAppointments() {
+            return `
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    ${appointments.map(app => {
+                        const statusClass = app.status === 'Approved' ? 'in' : app.status === 'Cancelled' ? 'out' : 'pending';
+                        return `
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <p style="font-weight: 700; font-size: 16px;">${app.name}</p>
+                                    <p style="color: var(--muted); font-size: 13px; margin: 4px 0;">${app.date} at ${app.time}</p>
+                                    <span class="badge pending">${app.type}</span>
+                                </div>
+                                <span class="badge ${statusClass}">${app.status}</span>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                                <button class="btn btn-outline" style="flex: 1;" onclick="viewAppointment('${app.id}')">View</button>
+                                <button class="btn btn-primary" style="flex: 1;" onclick="approveAppointment('${app.id}')" ${app.status === 'Approved' ? 'disabled' : ''}>Approve</button>
+                                <button class="btn btn-danger" style="flex: 1;" onclick="cancelAppointment('${app.id}')" ${app.status === 'Cancelled' ? 'disabled' : ''}>Cancel</button>
+                            </div>
+                        </div>
+                    `}).join('')}
+                </div>
+            `;
+        }
+
+        function renderInventory() {
+            return `
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    ${stock.map(item => {
+                        const statusClass = item.qty > 15 ? 'in' : item.qty > 0 ? 'low' : 'out';
+                        const statusLabel = item.qty > 15 ? 'In Stock' : item.qty > 0 ? 'Low Stock' : 'Out of Stock';
+                        
+                        return `
+                        <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <p style="font-weight: 700; font-size: 15px;">${item.name}</p>
+                                    <span class="badge ${statusClass}">${statusLabel}</span>
+                                </div>
+                                <p style="color: var(--muted); font-size: 13px; margin-top: 6px;">Qty: ${item.qty} / ${item.total}</p>
+                                <div style="width: 100%; height: 6px; background-color: var(--surface-alt); border-radius: 3px; margin-top: 10px;">
+                                    <div style="height: 100%; border-radius: 3px; width: ${(item.qty/item.total)*100}%; background-color: ${item.qty > 15 ? 'var(--success)' : item.qty > 0 ? 'var(--warning)' : 'var(--danger)'};"></div>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline" onclick="restockItem(${item.id})">Restock</button>
+                        </div>
+                    `}).join('')}
+                </div>
+            `;
+        }
+
+        function renderRecords() {
+            return `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <p style="color: var(--muted); font-size: 14px;">Secure Client Documents</p>
+                    <button class="btn btn-primary" onclick="uploadRecord()">+ Upload New</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${records.length === 0 ? '<p style="color: var(--muted); text-align: center; padding: 20px 0;">No records yet.</p>' : records.map(rec => `
+                        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <p style="font-weight: 700;">${rec.client}</p>
+                                <p style="font-size: 13px; font-weight: 600; color: var(--blue); margin: 2px 0;">📄 ${rec.doc}</p>
+                                <p style="font-size: 12px; color: var(--muted);">Uploaded: ${rec.date}</p>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-outline" style="padding: 8px;" onclick="viewRecord('${rec.id}')" aria-label="View">👁️</button>
+                                <button class="btn btn-danger" style="padding: 8px;" onclick="deleteRecord('${rec.id}')" aria-label="Delete">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderSettings() {
+            return `
+                <div class="card" style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--gradient); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 22px;">SA</div>
+                    <div>
+                        <p style="font-weight: 700; font-size: 18px;">Staff Admin</p>
+                        <p style="font-size: 13px; color: var(--muted); margin-top: 2px;">Account ID: STAFF-001</p>
+                        <span class="badge in" style="margin-top: 6px; display: inline-block;">System Administrator</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <p style="font-weight: 700; margin-bottom: 12px;">Clinic Configuration</p>
+                    <button class="btn btn-outline" style="width: 100%; text-align: left; margin-bottom: 10px; display: flex; justify-content: space-between;" onclick="openSettingsPanel('hours')">
+                        Manage Operating Hours <span>›</span>
+                    </button>
+                    <button class="btn btn-outline" style="width: 100%; text-align: left; margin-bottom: 10px; display: flex; justify-content: space-between;" onclick="openSettingsPanel('staff')">
+                        Staff Accounts <span>›</span>
+                    </button>
+                    <button class="btn btn-outline" style="width: 100%; text-align: left; display: flex; justify-content: space-between;" onclick="openSettingsPanel('notifications')">
+                        Notification Preferences <span>›</span>
+                    </button>
+                </div>
+
+                <div class="card">
+                    <p style="font-weight: 700; margin-bottom: 4px;">Quick Preferences</p>
+                    <div class="settings-row">
+                        <div class="settings-row-text">
+                            <p>Email Notifications</p>
+                            <p>Appointment updates via email</p>
+                        </div>
+                        <button class="toggle-switch ${settingsPrefs.emailNotifs ? 'on' : ''}" onclick="toggleSetting('emailNotifs')"><span class="knob"></span></button>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row-text">
+                            <p>SMS Notifications</p>
+                            <p>Text alerts for new bookings</p>
+                        </div>
+                        <button class="toggle-switch ${settingsPrefs.smsNotifs ? 'on' : ''}" onclick="toggleSetting('smsNotifs')"><span class="knob"></span></button>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row-text">
+                            <p>Auto-confirm Bookings</p>
+                            <p>Automatically approve routine appointments</p>
+                        </div>
+                        <button class="toggle-switch ${settingsPrefs.autoConfirm ? 'on' : ''}" onclick="toggleSetting('autoConfirm')"><span class="knob"></span></button>
+                    </div>
+                </div>
+                
+                <button class="btn btn-danger" style="width: 100%; padding: 14px; font-size: 15px;" onclick="logout()">Secure Log Out</button>
+            `;
+        }
+
+        function logout() {
+            if (confirm("Are you sure you want to log out of the Staff Portal?")) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Initialize dashboard
+        renderPage();
+    </script>
+</body>
+</html>
